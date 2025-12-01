@@ -22,6 +22,18 @@ Fecha de entrega: 01 de diciembre de 2025
 II Semestre | I Año
 */
 
+/*
+ Representa el tablero de juego de 9x9 casillas.
+
+ Esta clase:
+ - Guarda la matriz de casillas donde se mueven los jugadores.
+ - Administra las paredes horizontales y verticales que se colocan.
+ - Proporciona métodos para dibujar el tablero en la consola, incluyendo bordes y paredes más gruesas.
+ - Ofrece operaciones de consulta para saber si una posición está dentro del tablero, si hay una pared, etc.
+
+ Es la “vista” principal del juego, porque todo lo que se muestra gráficamente en la consola sale de aquí.
+ */
+
 public class Board {
 
     // Tamaño del tablero 9x9
@@ -72,7 +84,7 @@ public class Board {
      - Si la consola muestra símbolos raros, guardar el archivo como UTF-8
        y usar una fuente compatible (por ejemplo en la terminal de VS Code).
      */
-    public void printBoard(Player blanco, Player rojo) {
+    public void printBoard(Player blanco, Player rojo, Player jugadorActual) {
 
         /* ==============================================================
         0. Caracteres para dibujar la matriz y las paredes
@@ -109,13 +121,38 @@ public class Board {
             }
         }
 
-       /* 2. Colocar los personajes en la matriz visible
-         (sobrescriben el "*" en sus posiciones correspondientes)
-          blanco.getSymbol() → "PB"
-          rojo.getSymbol()   → "PR" */
+        /* 2. Colocar los personajes en la matriz visible (sobrescriben el "*" en sus posiciones correspondientes).
+        Si ambos jugadores comparten la misma casilla, se dará prioridad visual al jugador que tiene el turno actual (jugadorActual). */
 
-        cells[blanco.getRow()][blanco.getCol()] = blanco.getSymbol();
-        cells[rojo.getRow()][rojo.getCol()]     = rojo.getSymbol();
+        // Primero colocamos al jugador que NO está en turno.
+        Player jugadorSinTurno = (jugadorActual == blanco) ? rojo : blanco;
+
+        // Colocamos al jugador sin turno en su casilla.
+        cells[jugadorSinTurno.getRow()][jugadorSinTurno.getCol()] = jugadorSinTurno.getSymbol();
+
+        // Ahora colocamos al jugador que SÍ está en turno. Si ambos comparten casilla,
+        // esta asignación sobrescribirá a la anterior y será la ficha que vea el usuario.
+        cells[jugadorActual.getRow()][jugadorActual.getCol()] = jugadorActual.getSymbol();
+
+        /* ======================================================================
+         2.1 Representación visual de las paredes disponibles de cada jugador
+
+         En el juego físico de Quoridor, cada jugador tiene sus paredes
+         “apartadas” a un lado del tablero. En la consola no podemos apilar
+         fichas literalmente al costado de la matriz, pero estas líneas 
+         muestran cuántos muros le quedan a cada jugador usando el carácter ║.
+        ========================================================================= */
+
+        System.out.println();
+
+        // Línea de paredes para el Personaje Blanco
+        System.out.print("    ");
+        for (int i = 0; i < blanco.getWallsRemaining(); i++) {
+            // Cada muro disponible se representa como un tramo vertical grueso.
+            System.out.print(BORDE_V_GRUESO + "   ");
+        }
+
+        
 
         /*  
         3. Encabezado de columnas (A..I)
@@ -292,7 +329,15 @@ public class Board {
                 }
 
                 System.out.println(ESQUINA_INF_DER);
+
             }
         }
+        // Línea de paredes para el Personaje Rojo 
+            System.out.println();
+            System.out.print("    ");
+            for (int i = 0; i < rojo.getWallsRemaining(); i++) {
+                System.out.print(BORDE_V_GRUESO + "   ");
+            }
+            System.out.println();
     }
 }

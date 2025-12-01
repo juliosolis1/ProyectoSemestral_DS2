@@ -22,6 +22,20 @@ Fecha de entrega: 01 de diciembre de 2025
 II Semestre | I Año
 */
 
+/*
+  Clase de utilidades estáticas para el juego Quoridor.
+ 
+  Aquí se concentran funciones de apoyo que no pertenecen directamente a un solo objeto, por ejemplo:
+  
+  - Validar si un movimiento de ficha es permitido según:
+    bordes del tablero, paredes, posición del otro jugador y reglas (sin diagonales, sin atravesar muros, etc.).
+  - Detectar situaciones especiales como el empate (cuando un jugador queda completamente bloqueado).
+  - Imprimir el estado de los jugadores debajo del tablero (posiciones actuales y última jugada realizada).
+  - Definir constantes de colores ANSI para resaltar texto en la consola.
+ 
+  En pocas palabras: aquí están las “herramientas” comunes que usa el main.
+ */
+
 public class GameUtils {
 
     /*==========================================================
@@ -34,14 +48,16 @@ public class GameUtils {
     // Métodos de utilidad relacionados con la jugabilidad del juego (movimientos de jugadores y estado mostrado debajo del tablero).
 
     /*
-     Intenta mover al jugador 'actual' una casilla en la dirección WASD indicada.
+     Intenta mover al jugador "actual" una casilla en la dirección WASD indicada.
      - No permite salir del tablero.
      - No permite movimientos diagonales (solo W, A, S, D).
      - No permite cruzar paredes.
-     - No permite entrar en la casilla del otro jugador.
-     
+     - Permite que ambos jugadores compartan la misma casilla si el movimiento es válido;
+       visualmente se mostrará la ficha del jugador que tiene el turno actual.
+
      Devuelve true si el movimiento se realizó, false si fue inválido.
-     */
+    */
+
     public static boolean moverJugador(Board board, Player actual, Player otro, char input) {
         char dir = Character.toLowerCase(input);
         int r = actual.getRow();
@@ -110,16 +126,127 @@ public class GameUtils {
                 break;
         }
 
-        // 3. No permitir ocupar la misma casilla que el otro jugador
-        if (newR == otro.getRow() && newC == otro.getCol()) {
-            System.out.println("No puedes entrar en la casilla del otro jugador.");
-            return false;
-        }
-
-        // 4. Si todo es válido, actualizar la posición del jugador
+        // 3. Si todo es válido, actualizar la posición del jugador
         actual.setRow(newR);
         actual.setCol(newC);
         return true;
+    }
+
+     /*
+     Recorre el tablero desde la posición actual de un jugador para comprobar
+     si EXISTE al menos un camino de casillas válidas hasta una fila objetivo.
+     
+     La búsqueda:
+      - Solo se mueve en las 4 direcciones básicas (W, A, S, D), sin diagonales.
+      - Respeta exactamente las mismas paredes (hEdges y vEdges) que usa el método moverJugador.
+      - No tiene en cuenta turnos ni quién está en la casilla destino; solo analiza si una ruta geométrica es posible.
+     
+     Ejemplos de uso:
+      - Para el Personaje Blanco (PB), la meta es la última fila: Board.tamaño - 1.
+      - Para el Personaje Rojo   (PR), la meta es la primera fila: 0.
+     
+     Si no se encuentra ninguna ruta, significa que el jugador está encerrado
+     en una "jaula" de paredes y/o bordes sin posibilidad de llegar a su meta.
+     */
+    public static boolean existeCaminoHastaFilaObjetivo(Board board, Player jugador, int filaObjetivo) {
+
+        int filas = Board.tamaño;
+        int columnas = Board.tamaño;
+
+        // Matriz para marcar qué casillas ya han sido visitadas en la búsqueda.
+        boolean[][] visitado = new boolean[filas][columnas];
+
+        // Fila y columna de inicio (posición actual del jugador).
+        int inicioFila = jugador.getRow();
+        int inicioColumna = jugador.getCol();
+
+        // Cola para realizar una búsqueda en anchura (BFS).
+        java.util.ArrayDeque<int[]> cola = new java.util.ArrayDeque<int[]>();
+        cola.add(new int[]{inicioFila, inicioColumna});
+        visitado[inicioFila][inicioColumna] = true;
+
+        while (!cola.isEmpty()) {
+            int[] actual = cola.removeFirst();
+            int r = actual[0];
+            int c = actual[1];
+
+            // ¿Hemos llegado a alguna casilla de la fila objetivo?
+            if (r == filaObjetivo) {
+                return true;
+            }
+
+            // Intentamos expandir a las cuatro direcciones (W, A, S, D),
+            // replicando la misma lógica de paredes usada en moverJugador.
+
+            // ARRIBA (W): de (r,c) a (r-1,c)
+            if (r > 0 && !visitado[r - 1][c]) {
+                // Hay una pared horizontal ENTRE (r-1,c) y (r,c) en hEdges[r-1][c].
+                if (!board.hEdges[r - 1][c]) {
+                    visitado[r - 1][c] = true;
+                    cola.add(new int[]{r - 1, c});
+                }
+            }
+
+            // ABAJO (S): de (r,c) a (r+1,c)
+            if (r < filas - 1 && !visitado[r + 1][c]) {
+                // Hay una pared horizontal ENTRE (r,c) y (r+1,c) en hEdges[r][c].
+                if (!board.hEdges[r][c]) {
+                    visitado[r + 1][c] = true;
+                    cola.add(new int[]{r + 1, c});
+                }
+            }
+
+            // IZQUIERDA (A): de (r,c) a (r,c-1)
+            if (c > 0 && !visitado[r][c - 1]) {
+                // Hay una pared vertical ENTRE (r,c-1) y (r,c) en vEdges[r][c-1].
+                if (!board.vEdges[r][c - 1]) {
+                    visitado[r][c - 1] = true;
+                    cola.add(new int[]{r, c - 1});
+                }
+            }
+
+            // DERECHA (D): de (r,c) a (r,c+1)
+            if (c < columnas - 1 && !visitado[r][c + 1]) {
+                // Hay una pared vertical ENTRE (r,c) y (r,c+1) en vEdges[r][c].
+                if (!board.vEdges[r][c]) {
+                    visitado[r][c + 1] = true;
+                    cola.add(new int[]{r, c + 1});
+                }
+            }
+        }
+
+        // Si agotamos la búsqueda sin llegar a la fila objetivo, no hay camino posible.
+        return false;
+    }
+
+    /*
+     Determina si la partida debe terminar en EMPATE porque uno o ambos jugadores
+     han quedado encerrados en una región del tablero sin camino a su fila objetivo.
+     
+     Regla de decisión:
+      - PB (Personaje Blanco) debe poder llegar a la última fila (Board.tamaño-1).
+      - PR (Personaje Rojo) debe poder llegar a la primera fila (0).
+     
+     Si al menos uno de los dos jugadores NO tiene camino, la función devuelve true,
+     indicando que la partida debe darse por terminada en empate.
+    
+     Esto cubre lógicamente escenarios como:
+      - Ambos atrapados en la misma "jaula" de casillas rodeadas de paredes.
+      - Un jugador pegado a un borde sin salidas válidas hacia adelante.
+      - Barreras de muros que dividen el tablero en zonas incomunicadas respecto a la meta.
+     */
+
+    public static boolean hayEmpatePorEncierro(Board board, Player blanco, Player rojo) {
+
+        int filaObjetivoBlanco = Board.tamaño - 1; // Meta del jugador blanco (parte inferior).
+        int filaObjetivoRojo   = 0;                // Meta del jugador rojo   (parte superior).
+
+        boolean blancoTieneCamino = existeCaminoHastaFilaObjetivo(board, blanco, filaObjetivoBlanco);
+        boolean rojoTieneCamino   = existeCaminoHastaFilaObjetivo(board, rojo,   filaObjetivoRojo);
+
+        // Si ambos tienen al menos un camino, la partida continúa.
+        // Si uno o los dos han quedado sin camino, la partida termina en empate.
+        return !blancoTieneCamino || !rojoTieneCamino;
     }
 
     /*
@@ -132,9 +259,7 @@ public class GameUtils {
      
      Personaje Rojo (PR) colocó una pared vertical en la posición 5F
      */
-    public static void imprimirEstadoJugadores(Player blanco,
-                                               Player rojo,
-                                               String descripcionUltimaAccion) {
+    public static void imprimirEstadoJugadores(Player blanco, Player rojo, String descripcionUltimaAccion) {
 
         // Convertimos las coordenadas internas (0..8) a las que ve el usuario (1..9, A..I).
         int filaBlanco = blanco.getRow() + 1;

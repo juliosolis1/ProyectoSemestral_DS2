@@ -139,7 +139,7 @@ public class WallPlacer {
             return false;
         }
 
-        /* 3. REGLA NUEVA: NO PERMITIR CRUCES EN FORMA DE "+"
+        /* 3. Regla anti-cruzamiento de paredes
         
         En esta misma "coordenada base" (fila y columna inicial) una pared horizontal ocuparía:
         hEdges[row][col] y hEdges[row][col + 1]

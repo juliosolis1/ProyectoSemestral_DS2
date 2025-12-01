@@ -22,6 +22,22 @@ Fecha de entrega: 01 de diciembre de 2025
 II Semestre | I Año
 */
 
+/*
+  Representa a un jugador dentro del juego Quoridor.
+ 
+  Cada objeto Player almacena:
+  - El nombre que se muestra en consola (por ejemplo, "Personaje Blanco" o "Personaje Rojo").
+  - El símbolo que se dibuja en el tablero ("PB" o "PR").
+  - La posición actual del jugador en el tablero (fila y columna).
+  - La cantidad de muros disponibles que le quedan.
+ 
+  Además, expone métodos para:
+  - Consultar y actualizar su posición.
+  - Descontar muros cuando el jugador coloca una pared.
+ 
+  Es la clase que modela a los peones que los jugadores mueven en el tablero.
+ */
+
 public class Player {
 
     // Nombre que se mostrará en la consola ("Personaje Blanco", "Personaje Rojo", etc.)
